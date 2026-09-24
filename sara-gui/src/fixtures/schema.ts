@@ -1,0 +1,178 @@
+import type { Schema } from "@/types/domain";
+
+/** The built-in SARA model (10 item types + 6 relation pairs), as the GUI DTO. */
+export const builtinSchema: Schema = {
+  itemTypes: [
+    {
+      id: "solution",
+      displayName: "Solution",
+      prefix: "SOL",
+      idFormat: "{prefix}-{seq:03}",
+      parentTypes: [],
+      fields: [],
+      allowedTargets: [],
+    },
+    {
+      id: "use_case",
+      displayName: "Use Case",
+      prefix: "UC",
+      idFormat: "{prefix}-{seq:03}",
+      parentTypes: ["solution"],
+      fields: [],
+      allowedTargets: [{ relation: "refines", targets: ["solution"] }],
+    },
+    {
+      id: "scenario",
+      displayName: "Scenario",
+      prefix: "SCEN",
+      idFormat: "{prefix}-{seq:03}",
+      parentTypes: ["use_case"],
+      fields: [],
+      allowedTargets: [{ relation: "refines", targets: ["use_case"] }],
+    },
+    {
+      id: "system_requirement",
+      displayName: "System Requirement",
+      prefix: "SYSREQ",
+      idFormat: "{prefix}-{seq:03}",
+      parentTypes: ["scenario"],
+      fields: [
+        {
+          name: "specification",
+          displayName: "Specification",
+          fieldType: "text",
+          required: true,
+          placeholder: "The system SHALL …",
+        },
+      ],
+      allowedTargets: [
+        { relation: "derives_from", targets: ["scenario"] },
+        { relation: "depends_on", targets: ["system_requirement"] },
+      ],
+    },
+    {
+      id: "system_architecture",
+      displayName: "System Architecture",
+      prefix: "SYSARCH",
+      idFormat: "{prefix}-{seq:03}",
+      parentTypes: ["system_requirement"],
+      fields: [
+        {
+          name: "platform",
+          displayName: "Platform",
+          fieldType: "text",
+          required: false,
+          placeholder: "Target platform / deployment",
+        },
+      ],
+      allowedTargets: [{ relation: "satisfies", targets: ["system_requirement"] }],
+    },
+    {
+      id: "hardware_requirement",
+      displayName: "Hardware Requirement",
+      prefix: "HWREQ",
+      idFormat: "{prefix}-{seq:03}",
+      parentTypes: ["system_architecture"],
+      fields: [
+        {
+          name: "specification",
+          displayName: "Specification",
+          fieldType: "text",
+          required: true,
+          placeholder: "The hardware SHALL …",
+        },
+      ],
+      allowedTargets: [
+        { relation: "derives_from", targets: ["system_architecture"] },
+        { relation: "depends_on", targets: ["hardware_requirement"] },
+      ],
+    },
+    {
+      id: "software_requirement",
+      displayName: "Software Requirement",
+      prefix: "SWREQ",
+      idFormat: "{prefix}-{seq:03}",
+      parentTypes: ["system_architecture"],
+      fields: [
+        {
+          name: "specification",
+          displayName: "Specification",
+          fieldType: "text",
+          required: true,
+          placeholder: "The software SHALL …",
+        },
+      ],
+      allowedTargets: [
+        { relation: "derives_from", targets: ["system_architecture"] },
+        { relation: "depends_on", targets: ["software_requirement"] },
+      ],
+    },
+    {
+      id: "hardware_detailed_design",
+      displayName: "HW Detailed Design",
+      prefix: "HWDD",
+      idFormat: "{prefix}-{seq:03}",
+      parentTypes: ["hardware_requirement"],
+      fields: [],
+      allowedTargets: [{ relation: "satisfies", targets: ["hardware_requirement"] }],
+    },
+    {
+      id: "software_detailed_design",
+      displayName: "SW Detailed Design",
+      prefix: "SWDD",
+      idFormat: "{prefix}-{seq:03}",
+      parentTypes: ["software_requirement"],
+      fields: [],
+      allowedTargets: [{ relation: "satisfies", targets: ["software_requirement"] }],
+    },
+    {
+      id: "architecture_decision_record",
+      displayName: "Architecture Decision Record",
+      prefix: "ADR",
+      idFormat: "{prefix}-{seq:03}",
+      parentTypes: [],
+      fields: [
+        {
+          name: "status",
+          displayName: "Status",
+          fieldType: "enum",
+          enumValues: ["proposed", "accepted", "deprecated", "superseded"],
+          required: true,
+          placeholder: "proposed",
+        },
+        {
+          name: "deciders",
+          displayName: "Deciders",
+          fieldType: "list",
+          inner: "text",
+          required: false,
+        },
+      ],
+      allowedTargets: [
+        {
+          relation: "justifies",
+          targets: [
+            "system_architecture",
+            "software_detailed_design",
+            "hardware_detailed_design",
+          ],
+        },
+        { relation: "supersedes", targets: ["architecture_decision_record"] },
+      ],
+    },
+  ],
+  relations: [
+    { id: "refines", displayName: "Refines", inverse: "is_refined_by", direction: "upstream", primary: true },
+    { id: "is_refined_by", displayName: "Is refined by", inverse: "refines", direction: "downstream", primary: false },
+    { id: "derives_from", displayName: "Derives from", inverse: "derives", direction: "upstream", primary: true },
+    { id: "derives", displayName: "Derives", inverse: "derives_from", direction: "downstream", primary: false },
+    { id: "satisfies", displayName: "Satisfies", inverse: "is_satisfied_by", direction: "upstream", primary: true },
+    { id: "is_satisfied_by", displayName: "Is satisfied by", inverse: "satisfies", direction: "downstream", primary: false },
+    { id: "depends_on", displayName: "Depends on", inverse: "is_required_by", direction: "peer", primary: true },
+    { id: "is_required_by", displayName: "Is required by", inverse: "depends_on", direction: "peer", primary: false },
+    { id: "justifies", displayName: "Justifies", inverse: "justified_by", direction: "upstream", primary: true },
+    { id: "justified_by", displayName: "Justified by", inverse: "justifies", direction: "downstream", primary: false },
+    { id: "supersedes", displayName: "Supersedes", inverse: "superseded_by", direction: "peer", primary: true },
+    { id: "superseded_by", displayName: "Superseded by", inverse: "supersedes", direction: "peer", primary: false },
+  ],
+};

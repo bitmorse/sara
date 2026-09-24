@@ -1,0 +1,47 @@
+[package]
+name = "sara-gui"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95.0"
+description = "Desktop GUI backend for SARA"
+authors = ["Sara Team"]
+license = "Apache-2.0"
+# This crate is a desktop app, never published to crates.io.
+publish = false
+
+# Standalone workspace so the root `cargo --workspace` (CI) never builds the GUI.
+[workspace]
+
+[lib]
+# Tauri v2 lib layout (also enables future mobile targets).
+name = "sara_gui_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# The SARA engine — reused directly for all read paths and frontmatter writes.
+sara-core = { path = "../../sara-core" }
+
+# `protocol-asset` backs the asset:// protocol used to render local repo media.
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-opener = "2"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+
+# Git write/history layer (status, diff, stage, commit). Vendored libgit2 keeps
+# the 3-OS build self-contained (only a C compiler needed, no system libgit2).
+git2 = { version = "0.19", default-features = false, features = ["vendored-libgit2"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

@@ -38,3 +38,11 @@ result-*
 # Misc
 sara.toml
 model.yaml
+
+# sara-gui (JS toolchain + Tauri build artifacts)
+sara-gui/node_modules/
+sara-gui/dist/
+sara-gui/storybook-static/
+sara-gui/src-tauri/target/
+sara-gui/src-tauri/gen/schemas/
+sara-gui/*.tsbuildinfo

@@ -4,6 +4,13 @@ members = [
     "sara-core",
     "sara-cli",
 ]
+# The desktop GUI (sara-gui/src-tauri) is a standalone Cargo workspace: it pulls
+# in Tauri/wry/webkit and libgit2, which we deliberately keep out of the core CI
+# matrix (built on 3 OSes with `-D warnings`) and out of release-plz publishing.
+# It depends on sara-core by path and is verified by its own gui.yml workflow.
+exclude = [
+    "sara-gui/src-tauri",
+]
 
 [workspace.package]
 version = "0.11.1"
