@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 
 import { LoadingState } from "@/components/ui/feedback";
-import { useItemContent, useSaveBody } from "@/lib/query/hooks";
+import { useItemRaw, useSaveRaw } from "@/lib/query/hooks";
 import { MarkdownEditor } from "./MarkdownEditor";
 
 export interface ItemEditorProps {
@@ -12,12 +12,12 @@ export interface ItemEditorProps {
 }
 
 /**
- * Loads an item's markdown body and hosts the editor with debounced autosave.
- * Frontmatter is preserved server-side, so edits here produce clean git diffs.
+ * Loads an item's full markdown file and hosts the editor with debounced
+ * autosave. The editor round-trips frontmatter + body and writes the whole file.
  */
 export function ItemEditor({ itemId, autosaveMs = 800 }: ItemEditorProps) {
-  const { data: content, isLoading } = useItemContent(itemId);
-  const save = useSaveBody();
+  const { data: raw, isLoading } = useItemRaw(itemId);
+  const save = useSaveRaw();
   const [dirty, setDirty] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -28,19 +28,19 @@ export function ItemEditor({ itemId, autosaveMs = 800 }: ItemEditorProps) {
     };
   }, [itemId]);
 
-  if (isLoading || !content) return <LoadingState label="Loading document…" />;
+  if (isLoading || raw === undefined) return <LoadingState label="Loading document…" />;
 
-  const onChange = (body: string) => {
+  const onChange = (content: string) => {
     setDirty(true);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
-      save.mutate({ id: itemId, body }, { onSuccess: () => setDirty(false) });
+      save.mutate({ id: itemId, content }, { onSuccess: () => setDirty(false) });
     }, autosaveMs);
   };
 
   return (
     <div className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
-      <MarkdownEditor key={itemId} itemId={itemId} value={content.body} onChange={onChange} />
+      <MarkdownEditor key={itemId} itemId={itemId} value={raw} onChange={onChange} />
       <div className="flex items-center justify-end gap-1 pr-1 text-[10px] text-subtle-fg">
         {save.isPending ? (
           <>

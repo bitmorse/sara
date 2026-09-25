@@ -9,6 +9,7 @@ mod dto;
 mod error;
 mod git;
 mod md;
+mod recents;
 mod state;
 
 use sara_core::schema::{self, Schema};
@@ -44,7 +45,8 @@ pub fn run() {
             commands::list_items,
             commands::get_item,
             commands::get_item_content,
-            commands::save_item_body,
+            commands::get_item_raw,
+            commands::save_item_raw,
             commands::save_pasted_asset,
             commands::resolve_asset_path,
             commands::build_tree,
@@ -60,6 +62,9 @@ pub fn run() {
             commands::git_stage,
             commands::git_unstage,
             commands::git_commit,
+            commands::list_recent_projects,
+            commands::remember_project,
+            commands::forget_project,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

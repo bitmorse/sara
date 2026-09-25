@@ -7,6 +7,7 @@ import type { IpcClient, TraverseOptions } from "./contract";
 import type {
   ItemContent,
   ItemDetail,
+  RecentProject,
   TraversalNode,
   TraversalResult,
   TreeNode,
@@ -138,6 +139,14 @@ export interface MockOptions {
 
 export function createMockIpc(options: MockOptions = {}): IpcClient {
   const data = options.items ?? sh.items;
+
+  // In-memory recents so the switcher/gate have realistic data in stories.
+  let recents: RecentProject[] = [
+    { root: sh.REPO_ROOT, name: "smart-home", lastOpenedAt: "2026-09-24T11:00:00Z", missing: false },
+    { root: "/Users/you/projects/robot-arm", name: "robot-arm", lastOpenedAt: "2026-09-20T09:30:00Z", missing: false },
+    { root: "/Users/you/projects/legacy-specs", name: "legacy-specs", lastOpenedAt: "2026-08-02T14:12:00Z", missing: true },
+  ];
+
   const delay = <T>(value: T): Promise<T> =>
     options.latencyMs
       ? new Promise((r) => setTimeout(() => r(value), options.latencyMs))
@@ -164,7 +173,13 @@ export function createMockIpc(options: MockOptions = {}): IpcClient {
       if (!item) return Promise.reject(new Error(`Item ${id} not found`));
       return delay(sh.bodies[id] ?? genericBody(item));
     },
-    saveItemBody: () => delay(undefined),
+    getItemRaw: (id) => {
+      const item = data.find((i) => i.id === id);
+      if (!item) return Promise.reject(new Error(`Item ${id} not found`));
+      const c = sh.bodies[id] ?? genericBody(item);
+      return delay(`---\n${c.frontmatter}\n---\n\n${c.body}`);
+    },
+    saveItemRaw: () => delay(undefined),
     savePastedAsset: (_itemId, fileName) => delay(`assets/${fileName}`),
 
     buildTree: () => delay(buildTree(data)),
@@ -190,6 +205,20 @@ export function createMockIpc(options: MockOptions = {}): IpcClient {
       }),
 
     resolveAssetUrl: () => delay(PLACEHOLDER_IMAGE),
+
+    listRecentProjects: () => delay(recents),
+    rememberProject: (root) => {
+      const name = root.split("/").pop() ?? root;
+      recents = [
+        { root, name, lastOpenedAt: "2026-09-24T12:00:00Z", missing: false },
+        ...recents.filter((r) => r.root !== root),
+      ].slice(0, 10);
+      return delay(recents);
+    },
+    forgetProject: (root) => {
+      recents = recents.filter((r) => r.root !== root);
+      return delay(recents);
+    },
   };
 }
 

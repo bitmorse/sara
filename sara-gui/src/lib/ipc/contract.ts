@@ -16,6 +16,7 @@ import type {
   ItemContent,
   ItemDetail,
   LoadGraphResult,
+  RecentProject,
   Schema,
   TraversalResult,
   TreeNode,
@@ -45,10 +46,12 @@ export interface IpcClient {
   /* Items ------------------------------------------------------------------- */
   listItems(): Promise<ItemDetail[]>;
   getItem(id: string): Promise<ItemDetail>;
-  /** Frontmatter + body split for the markdown editor. */
+  /** Frontmatter + body split, for the read renderer. */
   getItemContent(id: string): Promise<ItemContent>;
-  /** Persist the edited markdown body, preserving frontmatter byte-for-byte. */
-  saveItemBody(id: string, body: string): Promise<void>;
+  /** The entire markdown file (frontmatter + body), for full-file editing. */
+  getItemRaw(id: string): Promise<string>;
+  /** Persist the entire markdown file verbatim. */
+  saveItemRaw(id: string, content: string): Promise<void>;
   /** Write a pasted/dropped asset into the repo; returns the relative path. */
   savePastedAsset(itemId: string, fileName: string, bytes: Uint8Array): Promise<string>;
 
@@ -73,4 +76,10 @@ export interface IpcClient {
   /* Assets ------------------------------------------------------------------ */
   /** Resolve a repo-relative media path to a URL the webview can load. */
   resolveAssetUrl(itemId: string, relPath: string): Promise<string>;
+
+  /* Recent projects --------------------------------------------------------- */
+  listRecentProjects(): Promise<RecentProject[]>;
+  /** Records `root` as most-recent; returns the updated list. */
+  rememberProject(root: string): Promise<RecentProject[]>;
+  forgetProject(root: string): Promise<RecentProject[]>;
 }

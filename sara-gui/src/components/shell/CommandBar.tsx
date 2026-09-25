@@ -1,6 +1,8 @@
-import { Search, ShieldCheck, GitCommitHorizontal, Plus, FileText, Share2, BarChart3 } from "lucide-react";
+import { Search, ShieldCheck, GitCommitHorizontal, Plus, FileText, Share2, BarChart3, PanelRight } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { IconButton } from "@/components/ui/IconButton";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { Input } from "@/components/ui/Input";
 import { Tabs } from "@/components/ui/Tabs";
 import { Kbd } from "@/components/ui/Kbd";
@@ -15,6 +17,8 @@ export interface CommandBarProps {
   onCheck?: () => void;
   onCommit?: () => void;
   onNewItem?: () => void;
+  inspectorCollapsed?: boolean;
+  onToggleInspector?: () => void;
 }
 
 /** Primary toolbar: view switch, global search, and workspace actions. */
@@ -27,6 +31,8 @@ export function CommandBar({
   onCheck,
   onCommit,
   onNewItem,
+  inspectorCollapsed,
+  onToggleInspector,
 }: CommandBarProps) {
   return (
     <div
@@ -72,6 +78,17 @@ export function CommandBar({
             </span>
           )}
         </Button>
+        {onToggleInspector && (
+          <Tooltip content={<span className="inline-flex items-center gap-1.5">{inspectorCollapsed ? "Show" : "Hide"} inspector <Kbd keys={["⌘", "I"]} /></span>}>
+            <IconButton
+              icon={PanelRight}
+              label="Toggle inspector"
+              size="sm"
+              active={!inspectorCollapsed}
+              onClick={onToggleInspector}
+            />
+          </Tooltip>
+        )}
       </div>
     </div>
   );

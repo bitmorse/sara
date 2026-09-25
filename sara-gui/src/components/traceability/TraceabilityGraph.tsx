@@ -1,42 +1,12 @@
-import { useEffect, useId, useRef, useState } from "react";
-import mermaid from "mermaid";
+import { useState } from "react";
 import { ArrowUpDown, Share2 } from "lucide-react";
 
 import { Tabs } from "@/components/ui/Tabs";
 import { EmptyState, LoadingState } from "@/components/ui/feedback";
 import { useIpc } from "@/lib/ipc/context";
 import { useQuery } from "@tanstack/react-query";
-import { useIsDark } from "@/lib/use-theme";
+import { MermaidDiagram } from "@/components/markdown/MermaidDiagram";
 import type { RelationDirection } from "@/types/domain";
-
-function MermaidDiagram({ code }: { code: string }) {
-  const isDark = useIsDark();
-  const ref = useRef<HTMLDivElement>(null);
-  const id = useId().replace(/:/g, "_");
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: isDark ? "dark" : "neutral",
-      securityLevel: "strict",
-      flowchart: { htmlLabels: true, curve: "basis" },
-    });
-    mermaid
-      .render(`m_${id}`, code)
-      .then(({ svg }) => {
-        if (!cancelled && ref.current) ref.current.innerHTML = svg;
-      })
-      .catch((e) => !cancelled && setError(String(e)));
-    return () => {
-      cancelled = true;
-    };
-  }, [code, id, isDark]);
-
-  if (error) return <p className="p-4 text-xs text-danger">{error}</p>;
-  return <div ref={ref} className="flex justify-center [&_svg]:max-w-full" />;
-}
 
 /** Renders a traversal as an interactive Mermaid flowchart. */
 export function TraceabilityGraph({ itemId }: { itemId: string | null }) {

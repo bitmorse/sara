@@ -4,24 +4,32 @@ import { FileSearch } from "lucide-react";
 
 import { EmptyState, LoadingState } from "@/components/ui/feedback";
 import { useItems, useSchema } from "@/lib/query/hooks";
-import type { ItemDetail } from "@/types/domain";
 import { ObjectRow } from "./ObjectRow";
 
 export interface DocumentViewProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** Id of the row currently being edited (null = all read-only). */
+  editingId?: string | null;
+  onEdit?: (id: string) => void;
+  onDoneEdit?: () => void;
   /** Optional text filter over id/name. */
   filter?: string;
-  /** Renders the inline editor for the currently-selected row. */
-  renderEditor?: (item: ItemDetail) => React.ReactNode;
 }
 
 /**
- * The center document: a virtualized list of requirement "objects". Uses
- * TanStack Virtual with dynamic row measurement so long specifications and the
- * inline editor don't blow up scroll performance across large repos.
+ * The center document: a virtualized list of requirement "objects", each
+ * rendering its markdown body inline (read-only by default; the edited row
+ * shows the MDXEditor). Dynamic row measurement keeps large repos snappy.
  */
-export function DocumentView({ selectedId, onSelect, filter, renderEditor }: DocumentViewProps) {
+export function DocumentView({
+  selectedId,
+  onSelect,
+  editingId,
+  onEdit,
+  onDoneEdit,
+  filter,
+}: DocumentViewProps) {
   const { data: items, isLoading } = useItems();
   const { data: schema } = useSchema();
   const parentRef = useRef<HTMLDivElement>(null);
@@ -34,8 +42,8 @@ export function DocumentView({ selectedId, onSelect, filter, renderEditor }: Doc
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 96,
-    overscan: 8,
+    estimateSize: () => 160,
+    overscan: 6,
     getItemKey: (i) => rows[i].id,
   });
 
@@ -57,7 +65,6 @@ export function DocumentView({ selectedId, onSelect, filter, renderEditor }: Doc
       <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
         {virtualizer.getVirtualItems().map((v) => {
           const item = rows[v.index];
-          const selected = item.id === selectedId;
           return (
             <div
               key={v.key}
@@ -70,9 +77,11 @@ export function DocumentView({ selectedId, onSelect, filter, renderEditor }: Doc
                 item={item}
                 index={v.index}
                 typeName={typeName(item.type)}
-                selected={selected}
+                selected={item.id === selectedId}
+                editing={item.id === editingId}
                 onSelect={() => onSelect(item.id)}
-                editorSlot={selected && renderEditor ? renderEditor(item) : undefined}
+                onEdit={() => onEdit?.(item.id)}
+                onDoneEdit={() => onDoneEdit?.()}
               />
             </div>
           );

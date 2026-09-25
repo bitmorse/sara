@@ -19,6 +19,7 @@ import type {
   ItemContent,
   ItemDetail,
   LoadGraphResult,
+  RecentProject,
   Schema,
   TraversalResult,
   TreeNode,
@@ -34,7 +35,8 @@ export const tauriIpc: IpcClient = {
   listItems: () => invoke<ItemDetail[]>("list_items"),
   getItem: (id) => invoke<ItemDetail>("get_item", { id }),
   getItemContent: (id) => invoke<ItemContent>("get_item_content", { id }),
-  saveItemBody: (id, body) => invoke<void>("save_item_body", { id, body }),
+  getItemRaw: (id) => invoke<string>("get_item_raw", { id }),
+  saveItemRaw: (id, content) => invoke<void>("save_item_raw", { id, content }),
   savePastedAsset: (itemId, fileName, bytes) =>
     invoke<string>("save_pasted_asset", { itemId, fileName, bytes: Array.from(bytes) }),
 
@@ -59,4 +61,8 @@ export const tauriIpc: IpcClient = {
     const abs = await invoke<string>("resolve_asset_path", { itemId, relPath });
     return convertFileSrc(abs);
   },
+
+  listRecentProjects: () => invoke<RecentProject[]>("list_recent_projects"),
+  rememberProject: (root) => invoke<RecentProject[]>("remember_project", { root }),
+  forgetProject: (root) => invoke<RecentProject[]>("forget_project", { root }),
 };

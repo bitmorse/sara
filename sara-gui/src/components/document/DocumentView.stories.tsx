@@ -2,7 +2,6 @@ import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { DocumentView } from "./DocumentView";
-import { ItemEditor } from "@/components/editor/ItemEditor";
 
 const meta = {
   title: "Document/DocumentView",
@@ -13,28 +12,25 @@ const meta = {
 export default meta;
 type Story = StoryObj;
 
-export const ObjectList: Story = {
+/** Bodies render inline read-only; double-click a row to edit it in place. */
+export const ReadingAndEditing: Story = {
   render: () => {
     const [selected, setSelected] = useState<string | null>("SYSREQ-002");
-    return (
-      <div className="h-screen bg-background">
-        <DocumentView selectedId={selected} onSelect={setSelected} />
-      </div>
-    );
-  },
-};
-
-export const WithInlineEditor: Story = {
-  render: () => {
-    const [selected, setSelected] = useState<string | null>("SYSARCH-001");
+    const [editingId, setEditingId] = useState<string | null>(null);
     return (
       <div className="h-screen bg-background">
         <DocumentView
           selectedId={selected}
-          onSelect={setSelected}
-          renderEditor={(item) =>
-            item.id === selected ? <ItemEditor itemId={item.id} /> : null
-          }
+          editingId={editingId}
+          onSelect={(id) => {
+            if (id !== selected) setEditingId(null);
+            setSelected(id);
+          }}
+          onEdit={(id) => {
+            setSelected(id);
+            setEditingId(id);
+          }}
+          onDoneEdit={() => setEditingId(null)}
         />
       </div>
     );

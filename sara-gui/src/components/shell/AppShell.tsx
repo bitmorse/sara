@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { SplitPane } from "@/components/ui/SplitPane";
@@ -8,14 +8,18 @@ import { StatusBar } from "./StatusBar";
 import { RightPanel } from "./RightPanel";
 import { Explorer } from "@/components/explorer/Explorer";
 import { DocumentView } from "@/components/document/DocumentView";
-import { ItemEditor } from "@/components/editor/ItemEditor";
 import { TraceabilityGraph } from "@/components/traceability/TraceabilityGraph";
 import { CoverageReportView } from "@/components/reports/CoverageReportView";
 import { Button } from "@/components/ui/Button";
 import { LoadingState, EmptyState } from "@/components/ui/feedback";
 import { FolderGit2 } from "lucide-react";
 import { useIpc } from "@/lib/ipc/context";
-import { useGitStatus, useValidation } from "@/lib/query/hooks";
+import {
+  useGitStatus,
+  useValidation,
+  useRecentProjects,
+  useRememberProject,
+} from "@/lib/query/hooks";
 import { useThemeController } from "@/lib/use-theme";
 import { useUiStore } from "@/store/ui";
 import { REPO_ROOT } from "@/fixtures/smart-home";
@@ -23,16 +27,45 @@ import { REPO_ROOT } from "@/fixtures/smart-home";
 export interface AppShellProps {
   /** Repository root to open (one repo = one project = one sara). */
   root?: string;
-  /** Invoked by the project switcher to pick a different repo (real app only). */
+  /** Pick a different repo via the OS dialog (real app only). */
   onOpenProject?: () => void;
+  /** Switch to a known recent repo by root. */
+  onSelectProject?: (root: string) => void;
 }
 
 /** The complete application layout: chrome + three-pane workbench. */
-export function AppShell({ root = REPO_ROOT, onOpenProject }: AppShellProps) {
+export function AppShell({ root = REPO_ROOT, onOpenProject, onSelectProject }: AppShellProps) {
   const ipc = useIpc();
   const [theme, toggleTheme] = useThemeController();
-  const { mainView, setMainView, selectedItemId, select, editing, setEditing } = useUiStore();
+  const {
+    mainView,
+    setMainView,
+    selectedItemId,
+    select,
+    editing,
+    setEditing,
+    inspectorCollapsed,
+    toggleInspector,
+  } = useUiStore();
   const [search, setSearch] = useState("");
+
+  // Keyboard: ⌘E edit selected · Esc exit edit · ⌘I toggle inspector.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        useUiStore.getState().setEditing(false);
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "e") {
+        e.preventDefault();
+        const s = useUiStore.getState();
+        if (s.selectedItemId) s.setEditing(!s.editing);
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "i") {
+        e.preventDefault();
+        useUiStore.getState().toggleInspector();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Load the graph into the backend before any read hook runs (the mock's
   // loadGraph just returns fixtures, so Storybook is unaffected).
@@ -48,6 +81,14 @@ export function AppShell({ root = REPO_ROOT, onOpenProject }: AppShellProps) {
   });
   const { data: gitStatus = [] } = useGitStatus();
   const { data: validation } = useValidation(false);
+  const { data: recents = [] } = useRecentProjects();
+  const remember = useRememberProject();
+
+  // Record the repo as most-recently-used once it has loaded.
+  useEffect(() => {
+    if (load.isSuccess) remember.mutate(root);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load.isSuccess, root]);
 
   if (load.isLoading) {
     return (
@@ -73,36 +114,17 @@ export function AppShell({ root = REPO_ROOT, onOpenProject }: AppShellProps) {
     mainView === "document" ? (
       <DocumentView
         selectedId={selectedItemId}
+        editingId={editing ? selectedItemId : null}
         filter={search}
         onSelect={(id) => {
+          if (id !== selectedItemId) setEditing(false);
           select(id);
-          setEditing(false);
         }}
-        renderEditor={(item) =>
-          editing && item.id === selectedItemId ? (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-subtle-fg">
-                  Editing body
-                </span>
-                <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-                  Done
-                </Button>
-              </div>
-              <ItemEditor itemId={item.id} />
-            </div>
-          ) : (
-            <button
-              className="text-[11px] text-primary hover:underline"
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditing(true);
-              }}
-            >
-              Edit body…
-            </button>
-          )
-        }
+        onEdit={(id) => {
+          select(id);
+          setEditing(true);
+        }}
+        onDoneEdit={() => setEditing(false)}
       />
     ) : mainView === "traceability" ? (
       <TraceabilityGraph itemId={selectedItemId} />
@@ -117,7 +139,10 @@ export function AppShell({ root = REPO_ROOT, onOpenProject }: AppShellProps) {
           workspace={workspace}
           theme={theme}
           onToggleTheme={toggleTheme}
-          onOpenProject={onOpenProject}
+          recents={recents}
+          currentRoot={root}
+          onSelectProject={onSelectProject}
+          onOpenOther={onOpenProject}
         />
       )}
       <CommandBar
@@ -127,6 +152,8 @@ export function AppShell({ root = REPO_ROOT, onOpenProject }: AppShellProps) {
         onSearchChange={setSearch}
         dirtyCount={gitStatus.length}
         onCommit={() => useUiStore.getState().setLeftTab("source-control")}
+        inspectorCollapsed={inspectorCollapsed}
+        onToggleInspector={toggleInspector}
       />
 
       <div className="min-h-0 flex-1">
@@ -136,14 +163,18 @@ export function AppShell({ root = REPO_ROOT, onOpenProject }: AppShellProps) {
           minFirst={220}
           first={<Explorer />}
           second={
-            <SplitPane
-              direction="horizontal"
-              initialSize={720}
-              minFirst={360}
-              minSecond={280}
-              first={<div className="h-full bg-background">{main}</div>}
-              second={<RightPanel />}
-            />
+            inspectorCollapsed ? (
+              <div className="h-full bg-background">{main}</div>
+            ) : (
+              <SplitPane
+                direction="horizontal"
+                initialSize={720}
+                minFirst={360}
+                minSecond={280}
+                first={<div className="h-full bg-background">{main}</div>}
+                second={<RightPanel />}
+              />
+            )
           }
         />
       </div>

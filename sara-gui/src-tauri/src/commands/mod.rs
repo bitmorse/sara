@@ -18,10 +18,13 @@ use sara_core::schema::{self, Schema};
 use sara_core::service;
 use sara_core::validation;
 
+use tauri::Manager;
+
 use crate::dto::*;
 use crate::error::{GuiError, GuiResult};
 use crate::git::{self, Target};
 use crate::md;
+use crate::recents;
 use crate::state::AppState;
 
 /// The upstream hierarchy relations that define the outline tree's parent link.
@@ -137,14 +140,18 @@ pub fn get_item_content(id: String, state: St) -> GuiResult<ItemContentDto> {
     Ok(ItemContentDto { frontmatter, body })
 }
 
+/// Returns the entire markdown file (frontmatter + body) for full-file editing.
 #[tauri::command]
-pub fn save_item_body(id: String, body: String, state: St) -> GuiResult<()> {
+pub fn get_item_raw(id: String, state: St) -> GuiResult<String> {
     let path = with_graph(&state, |g| Ok(find_item(g, &id)?.source.full_path()))?;
-    let content = fs::read_to_string(&path)?;
+    Ok(fs::read_to_string(&path)?)
+}
 
-    // Preserve the frontmatter block; replace only the body.
-    let (frontmatter, _, had_fm) = md::split(&content);
-    fs::write(&path, md::recombine(&frontmatter, &body, had_fm))?;
+/// Writes the entire markdown file verbatim (the editor round-trips frontmatter).
+#[tauri::command]
+pub fn save_item_raw(id: String, content: String, state: St) -> GuiResult<()> {
+    let path = with_graph(&state, |g| Ok(find_item(g, &id)?.source.full_path()))?;
+    fs::write(&path, content)?;
     Ok(())
 }
 
@@ -451,4 +458,53 @@ pub fn git_commit(req: CommitReq, state: St) -> GuiResult<CommitInfoDto> {
 pub fn install_schema() -> GuiResult<SchemaDto> {
     let _ = schema::install(Schema::builtin());
     Ok(SchemaDto::from(schema::active()))
+}
+
+/* -------------------------------------------------------------------------- */
+/* Recent projects                                                            */
+/* -------------------------------------------------------------------------- */
+
+fn recents_path(app: &tauri::AppHandle) -> GuiResult<PathBuf> {
+    let dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| GuiError::new("recents", e))?;
+    Ok(dir.join("recents.json"))
+}
+
+fn to_recent_dto(r: recents::StoredRecent) -> RecentProjectDto {
+    let path = PathBuf::from(&r.root);
+    RecentProjectDto {
+        name: path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| r.root.clone()),
+        missing: !path.exists(),
+        root: r.root,
+        last_opened_at: r.last_opened_at,
+    }
+}
+
+#[tauri::command]
+pub fn list_recent_projects(app: tauri::AppHandle) -> GuiResult<Vec<RecentProjectDto>> {
+    let list = recents::load(&recents_path(&app)?);
+    Ok(list.into_iter().map(to_recent_dto).collect())
+}
+
+#[tauri::command]
+pub fn remember_project(app: tauri::AppHandle, root: String) -> GuiResult<Vec<RecentProjectDto>> {
+    let path = recents_path(&app)?;
+    let now = chrono::Utc::now().to_rfc3339();
+    let list = recents::touch(recents::load(&path), &root, now);
+    recents::save(&path, &list)?;
+    Ok(list.into_iter().map(to_recent_dto).collect())
+}
+
+#[tauri::command]
+pub fn forget_project(app: tauri::AppHandle, root: String) -> GuiResult<Vec<RecentProjectDto>> {
+    let path = recents_path(&app)?;
+    let mut list = recents::load(&path);
+    list.retain(|r| r.root != root);
+    recents::save(&path, &list)?;
+    Ok(list.into_iter().map(to_recent_dto).collect())
 }

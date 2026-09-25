@@ -10,6 +10,7 @@ export const qk = {
   items: ["items"] as const,
   item: (id: string) => ["item", id] as const,
   content: (id: string) => ["content", id] as const,
+  raw: (id: string) => ["raw", id] as const,
   tree: ["tree"] as const,
   traverse: (id: string, opts: TraverseOptions) => ["traverse", id, opts] as const,
   validation: (strict: boolean) => ["validation", strict] as const,
@@ -42,6 +43,15 @@ export function useItemContent(id: string | null) {
   return useQuery({
     queryKey: qk.content(id ?? ""),
     queryFn: () => ipc.getItemContent(id!),
+    enabled: !!id,
+  });
+}
+
+export function useItemRaw(id: string | null) {
+  const ipc = useIpc();
+  return useQuery({
+    queryKey: qk.raw(id ?? ""),
+    queryFn: () => ipc.getItemRaw(id!),
     enabled: !!id,
   });
 }
@@ -79,14 +89,15 @@ export function useFileHistory(path: string | null) {
   });
 }
 
-/** Save a markdown body, then invalidate the item's content + git status. */
-export function useSaveBody() {
+/** Save the full markdown file, then refresh the item's read view + git status. */
+export function useSaveRaw() {
   const ipc = useIpc();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, body }: { id: string; body: string }) => ipc.saveItemBody(id, body),
+    mutationFn: ({ id, content }: { id: string; content: string }) => ipc.saveItemRaw(id, content),
     onSuccess: (_data, { id }) => {
       qc.invalidateQueries({ queryKey: qk.content(id) });
+      qc.invalidateQueries({ queryKey: qk.item(id) });
       qc.invalidateQueries({ queryKey: qk.gitStatus });
     },
   });
@@ -108,5 +119,28 @@ export function useStage() {
     mutationFn: ({ paths, stage }: { paths: string[]; stage: boolean }) =>
       stage ? ipc.gitStage(paths) : ipc.gitUnstage(paths),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.gitStatus }),
+  });
+}
+
+export function useRecentProjects() {
+  const ipc = useIpc();
+  return useQuery({ queryKey: ["recents"], queryFn: () => ipc.listRecentProjects() });
+}
+
+export function useRememberProject() {
+  const ipc = useIpc();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (root: string) => ipc.rememberProject(root),
+    onSuccess: (list) => qc.setQueryData(["recents"], list),
+  });
+}
+
+export function useForgetProject() {
+  const ipc = useIpc();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (root: string) => ipc.forgetProject(root),
+    onSuccess: (list) => qc.setQueryData(["recents"], list),
   });
 }

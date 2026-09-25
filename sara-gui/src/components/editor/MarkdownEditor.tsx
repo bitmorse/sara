@@ -12,6 +12,7 @@ import {
   codeBlockPlugin,
   codeMirrorPlugin,
   diffSourcePlugin,
+  frontmatterPlugin,
   markdownShortcutPlugin,
   toolbarPlugin,
   UndoRedo,
@@ -19,13 +20,10 @@ import {
   BlockTypeSelect,
   CreateLink,
   InsertImage,
-  InsertTable,
-  InsertThematicBreak,
   ListsToggle,
-  CodeToggle,
   InsertCodeBlock,
+  InsertFrontmatter,
   DiffSourceToggleWrapper,
-  Separator,
 } from "@mdxeditor/editor";
 import "@mdxeditor/editor/style.css";
 
@@ -34,9 +32,9 @@ import { useIpc } from "@/lib/ipc/context";
 import { useIsDark } from "@/lib/use-theme";
 
 export interface MarkdownEditorProps {
-  /** The item whose body is being edited — scopes asset resolution/uploads. */
+  /** The item being edited — scopes asset resolution/uploads. */
   itemId: string;
-  /** Initial markdown BODY (frontmatter is owned by core, never shown here). */
+  /** Initial markdown for the WHOLE file (frontmatter + body). */
   value: string;
   onChange?: (markdown: string) => void;
   readOnly?: boolean;
@@ -44,13 +42,12 @@ export interface MarkdownEditorProps {
 }
 
 /**
- * MDXEditor wrapper for a requirement's markdown body.
- *
- * Contract: this editor NEVER sees frontmatter — the backend splits it out and
- * recombines on save, so git diffs stay clean. Local images/videos are stored
- * as repo-relative paths; `imagePreviewHandler` resolves them to an asset URL
- * for display only, and pasted/dropped images are written into the repo working
- * tree via `savePastedAsset`, returning the relative path to embed.
+ * MDXEditor wrapper editing a requirement's full markdown file. The frontmatter
+ * plugin renders the YAML block as an editable properties panel and the source
+ * toggle exposes the entire raw file. Local images/videos are stored as
+ * repo-relative paths; `imagePreviewHandler` resolves them to an asset URL for
+ * display, and pasted/dropped images are written into the repo working tree via
+ * `savePastedAsset`, returning the relative path to embed.
  */
 export function MarkdownEditor({ itemId, value, onChange, readOnly, className }: MarkdownEditorProps) {
   const ipc = useIpc();
@@ -103,23 +100,23 @@ export function MarkdownEditor({ itemId, value, onChange, readOnly, className }:
             },
           }),
           diffSourcePlugin({ viewMode: "rich-text" }),
+          // Full-file editing: frontmatter renders as an editable properties
+          // panel; the source toggle shows the entire raw file incl. `---`.
+          frontmatterPlugin(),
           markdownShortcutPlugin(),
           toolbarPlugin({
+            // Slim toolbar: the essentials + the source/markdown toggle. Tables,
+            // rules, underline, etc. remain available via markdown shortcuts.
             toolbarContents: () => (
               <DiffSourceToggleWrapper>
                 <UndoRedo />
-                <Separator />
                 <BoldItalicUnderlineToggles />
-                <CodeToggle />
-                <Separator />
                 <BlockTypeSelect />
                 <ListsToggle />
-                <Separator />
                 <CreateLink />
                 <InsertImage />
-                <InsertTable />
-                <InsertThematicBreak />
                 <InsertCodeBlock />
+                <InsertFrontmatter />
               </DiffSourceToggleWrapper>
             ),
           }),

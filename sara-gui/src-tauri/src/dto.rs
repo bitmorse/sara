@@ -482,6 +482,16 @@ pub struct FileDiffDto {
     pub lines: Vec<DiffLineDto>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecentProjectDto {
+    pub root: String,
+    pub name: String,
+    pub last_opened_at: String,
+    /// True when the path no longer exists on disk (stale entry).
+    pub missing: bool,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

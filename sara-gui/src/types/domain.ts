@@ -236,3 +236,12 @@ export interface LoadGraphResult {
   items: ItemDetail[];
   warnings: string[];
 }
+
+export interface RecentProject {
+  root: string;
+  name: string;
+  /** ISO-8601 timestamp of the last open. */
+  lastOpenedAt: string;
+  /** True when the path no longer exists on disk. */
+  missing: boolean;
+}

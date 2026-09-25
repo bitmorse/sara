@@ -1,9 +1,10 @@
-//! Minimal frontmatter splitter for the body-only editor round-trip.
+//! Minimal frontmatter splitter for the read view.
 //!
 //! sara-core owns frontmatter and only re-exports `has_frontmatter` /
-//! `update_frontmatter`, not the extractors — so the GUI splits/recombines
-//! locally. Frontmatter is the YAML between a leading `---` line and the next
-//! `---`/`...` line; everything after is the body.
+//! `update_frontmatter`, not the extractors — so the GUI splits locally to feed
+//! the read renderer just the body. Frontmatter is the YAML between a leading
+//! `---` line and the next `---`/`...` line; everything after is the body.
+//! (Editing operates on the whole file, so no recombine is needed here.)
 
 /// Splits content into `(frontmatter_inner, body, had_frontmatter)`.
 pub fn split(content: &str) -> (String, String, bool) {
@@ -29,32 +30,17 @@ pub fn split(content: &str) -> (String, String, bool) {
     }
 }
 
-/// Recombines a (possibly empty) frontmatter block with a new body, keeping the
-/// frontmatter YAML intact so only the body region changes in git diffs.
-pub fn recombine(frontmatter: &str, body: &str, had_frontmatter: bool) -> String {
-    let body = body.trim_end_matches('\n');
-    if had_frontmatter {
-        format!("---\n{}\n---\n\n{}\n", frontmatter.trim_matches('\n'), body)
-    } else {
-        format!("{body}\n")
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn round_trip_is_idempotent() {
+    fn splits_frontmatter_from_body() {
         let original = "---\nid: \"X-1\"\ntype: solution\n---\n\n# Title\n\nBody text.\n";
         let (fm, body, had) = split(original);
         assert!(had);
         assert_eq!(fm, "id: \"X-1\"\ntype: solution");
-        let rebuilt = recombine(&fm, &body, had);
-        // Splitting the rebuilt output yields the same parts (no drift).
-        let (fm2, body2, had2) = split(&rebuilt);
-        assert_eq!((fm, body), (fm2, body2));
-        assert!(had2);
+        assert_eq!(body, "# Title\n\nBody text.\n");
     }
 
     #[test]
