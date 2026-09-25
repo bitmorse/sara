@@ -155,10 +155,12 @@ export interface TypeCoverage {
   type: ItemTypeId;
   total: number;
   complete: number;
+  /** Percentage, 0–100. */
   coveragePercent: number;
 }
 
 export interface CoverageReport {
+  /** Percentage, 0–100 (matches sara-core; do not multiply by 100). */
   overallCoverage: number;
   totalItems: number;
   completeItems: number;

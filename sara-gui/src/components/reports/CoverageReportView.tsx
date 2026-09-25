@@ -47,7 +47,7 @@ export function CoverageReportView() {
   if (isLoading || !report) return <LoadingState label="Generating report…" />;
 
   const typeName = (id: string) => schema?.itemTypes.find((t) => t.id === id)?.displayName ?? id;
-  const overall = Math.round(report.overallCoverage * 100);
+  const overall = Math.round(report.overallCoverage);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">

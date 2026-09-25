@@ -413,7 +413,7 @@ export const validationReport: ValidationReport = {
 };
 
 export const coverageReport: CoverageReport = {
-  overallCoverage: 0.72,
+  overallCoverage: 72,
   totalItems: items.length,
   completeItems: Math.round(items.length * 0.72),
   byType: [
