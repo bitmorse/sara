@@ -30,7 +30,6 @@ export const ReadingAndEditing: Story = {
             setSelected(id);
             setEditingId(id);
           }}
-          onDoneEdit={() => setEditingId(null)}
         />
       </div>
     );

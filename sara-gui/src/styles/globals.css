@@ -16,23 +16,23 @@
  * Layer 1 — PRIMITIVES (raw, non-semantic). OKLCH for perceptual uniformity.
  * ------------------------------------------------------------------------- */
 :root {
-  /* Neutral ramp (slate-tinted, the app chrome) */
+  /* Neutral ramp (near-gray; a whisper of cool so it reads "slate", not lavender) */
   --slate-0: oklch(1 0 0);
-  --slate-25: oklch(0.988 0.002 260);
-  --slate-50: oklch(0.975 0.003 260);
-  --slate-100: oklch(0.955 0.005 260);
-  --slate-150: oklch(0.93 0.006 260);
-  --slate-200: oklch(0.9 0.008 260);
-  --slate-300: oklch(0.84 0.01 260);
-  --slate-400: oklch(0.71 0.015 260);
-  --slate-500: oklch(0.58 0.018 260);
-  --slate-600: oklch(0.47 0.02 262);
-  --slate-700: oklch(0.37 0.02 263);
-  --slate-800: oklch(0.27 0.018 264);
-  --slate-850: oklch(0.22 0.016 265);
-  --slate-900: oklch(0.18 0.014 266);
-  --slate-950: oklch(0.14 0.012 267);
-  --slate-1000: oklch(0.1 0.01 268);
+  --slate-25: oklch(0.988 0.001 260);
+  --slate-50: oklch(0.975 0.001 260);
+  --slate-100: oklch(0.955 0.002 260);
+  --slate-150: oklch(0.93 0.002 260);
+  --slate-200: oklch(0.9 0.002 260);
+  --slate-300: oklch(0.84 0.003 260);
+  --slate-400: oklch(0.71 0.004 260);
+  --slate-500: oklch(0.58 0.004 260);
+  --slate-600: oklch(0.47 0.005 262);
+  --slate-700: oklch(0.37 0.005 263);
+  --slate-800: oklch(0.27 0.005 264);
+  --slate-850: oklch(0.22 0.004 265);
+  --slate-900: oklch(0.18 0.004 266);
+  --slate-950: oklch(0.14 0.003 267);
+  --slate-1000: oklch(0.1 0.003 268);
 
   /* Brand / primary (indigo) */
   --indigo-300: oklch(0.78 0.11 268);
@@ -102,8 +102,8 @@
 
   --foreground: var(--slate-900);     /* primary text */
   --muted: var(--slate-100);          /* muted surface */
-  --muted-foreground: var(--slate-500); /* secondary text */
-  --subtle-foreground: var(--slate-400); /* tertiary / placeholder */
+  --muted-foreground: var(--slate-600); /* secondary text */
+  --subtle-foreground: var(--slate-500); /* tertiary / placeholder */
 
   --border: var(--slate-200);         /* hairlines */
   --border-strong: var(--slate-300);  /* dividers under stress */
@@ -151,8 +151,8 @@
 
   --foreground: var(--slate-100);
   --muted: var(--slate-850);
-  --muted-foreground: var(--slate-400);
-  --subtle-foreground: var(--slate-500);
+  --muted-foreground: var(--slate-300);
+  --subtle-foreground: var(--slate-400);
 
   --border: var(--slate-800);
   --border-strong: var(--slate-700);
@@ -333,8 +333,12 @@
   background: transparent;
 }
 
-/* Flat, borderless toolbar (kept, just not bolted-on). */
+/* Flat, borderless toolbar (kept, just not bolted-on). Force `static` so it
+   does not inherit the vendor `position: sticky` and pin to the DocumentView
+   scroll viewport — inline in-list editing needs the toolbar to scroll with
+   the editor, not float over the text. */
 .sara-mdx [role="toolbar"] {
+  position: static;
   background: transparent;
   border: none;
   border-radius: 0;

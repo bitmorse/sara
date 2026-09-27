@@ -124,7 +124,6 @@ export function AppShell({ root = REPO_ROOT, onOpenProject, onSelectProject }: A
           select(id);
           setEditing(true);
         }}
-        onDoneEdit={() => setEditing(false)}
       />
     ) : mainView === "traceability" ? (
       <TraceabilityGraph itemId={selectedItemId} />

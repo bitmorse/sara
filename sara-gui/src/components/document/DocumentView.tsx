@@ -12,7 +12,6 @@ export interface DocumentViewProps {
   /** Id of the row currently being edited (null = all read-only). */
   editingId?: string | null;
   onEdit?: (id: string) => void;
-  onDoneEdit?: () => void;
   /** Optional text filter over id/name. */
   filter?: string;
 }
@@ -27,7 +26,6 @@ export function DocumentView({
   onSelect,
   editingId,
   onEdit,
-  onDoneEdit,
   filter,
 }: DocumentViewProps) {
   const { data: items, isLoading } = useItems();
@@ -81,7 +79,6 @@ export function DocumentView({
                 editing={item.id === editingId}
                 onSelect={() => onSelect(item.id)}
                 onEdit={() => onEdit?.(item.id)}
-                onDoneEdit={() => onDoneEdit?.()}
               />
             </div>
           );
